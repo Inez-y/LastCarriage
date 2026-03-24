@@ -1,0 +1,130 @@
+#include "Game.h"
+#include <iostream>
+
+Game::Game()
+    : window(nullptr),
+      renderer(nullptr),
+      tilesetTexture(nullptr),
+      isRunning(false) {
+}
+
+Game::~Game() {
+}
+
+bool Game::init(const char* title, int width, int height) {
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
+        std::cout << "SDL_Init failed: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    window = SDL_CreateWindow(title, width, height, 0);
+    if (!window) {
+        std::cout << "SDL_CreateWindow failed: " << SDL_GetError() << std::endl;
+        SDL_Quit();
+        return false;
+    }
+
+    renderer = SDL_CreateRenderer(window, nullptr);
+    if (!renderer) {
+        std::cout << "SDL_CreateRenderer failed: " << SDL_GetError() << std::endl;
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return false;
+    }
+
+    // Map tiles
+    tilesetTexture = IMG_LoadTexture(renderer, "../assets/tileset.png");
+    if (!tilesetTexture) {
+        std::cout << "Failed to load tileset texture: " << SDL_GetError() << std::endl;
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return false;
+    }
+
+    // Load TMX map
+    if (!map.load("../assets/map.tmx")) {
+        std::cout << "Failed to load TMX map.\n";
+        SDL_DestroyTexture(tilesetTexture);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return false;
+    }
+
+    std::cout << "Map loaded successfully.\n";
+    std::cout << "Map size: " << map.getWidth() << " x " << map.getHeight() << std::endl;
+    std::cout << "Tile size: " << map.getTileWidth() << " x " << map.getTileHeight() << std::endl;
+    std::cout << "Item spawn count: " << map.getItemSpawnPoints().size() << std::endl;
+    std::cout << "Collider count: " << map.getColliders().size() << std::endl;
+
+    isRunning = true;
+    return true;
+}
+
+void Game::run() {
+    while (isRunning) {
+        handleEvents();
+        update();
+        render();
+        SDL_Delay(16);
+    }
+}
+
+void Game::handleEvents() {
+    SDL_Event event;
+
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_EVENT_QUIT) {
+            isRunning = false;
+        }
+    }
+}
+
+void Game::update() {
+}
+
+void Game::render() {
+    SDL_SetRenderDrawColor(renderer, 25, 25, 25, 255);
+    SDL_RenderClear(renderer);
+
+    map.render(renderer, tilesetTexture);
+
+    // Draw collision rectangles in red
+    // SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    // for (const SDL_FRect& rect : map.getColliders()) {
+    //     SDL_RenderRect(renderer, &rect);
+    // }
+
+    // Draw item points in green
+    // SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    // for (const SpawnPoint& p : map.getItemSpawnPoints()) {
+    //     SDL_FRect pointRect;
+    //     pointRect.x = p.x - 4.0f;
+    //     pointRect.y = p.y - 4.0f;
+    //     pointRect.w = 8.0f;
+    //     pointRect.h = 8.0f;
+    //     SDL_RenderFillRect(renderer, &pointRect);
+    // }
+
+    SDL_RenderPresent(renderer);
+}
+
+void Game::clean() {
+    if (tilesetTexture) {
+        SDL_DestroyTexture(tilesetTexture);
+        tilesetTexture = nullptr;
+    }
+
+    if (renderer) {
+        SDL_DestroyRenderer(renderer);
+        renderer = nullptr;
+    }
+
+    if (window) {
+        SDL_DestroyWindow(window);
+        window = nullptr;
+    }
+
+    SDL_Quit();
+}
