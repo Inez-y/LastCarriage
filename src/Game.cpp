@@ -5,6 +5,7 @@ Game::Game()
     : window(nullptr),
       renderer(nullptr),
       tilesetTexture(nullptr),
+      coinCount(0),
       isRunning(false) {
 }
 
@@ -43,7 +44,7 @@ bool Game::init(const char* title, int width, int height) {
     }
 
     // Load TMX map
-    if (!map.load("../assets/map1.tmx")) {
+    if (!map.load("../assets/map.tmx")) {
         std::cout << "Failed to load TMX map.\n";
         SDL_DestroyTexture(tilesetTexture);
         SDL_DestroyRenderer(renderer);
@@ -55,16 +56,21 @@ bool Game::init(const char* title, int width, int height) {
     std::cout << "Map loaded successfully.\n";
     std::cout << "Map size: " << map.getWidth() << " x " << map.getHeight() << std::endl;
     std::cout << "Tile size: " << map.getTileWidth() << " x " << map.getTileHeight() << std::endl;
-    std::cout << "Item spawn count: " << map.getItemSpawnPoints().size() << std::endl;
+    std::cout << "Item spawn count: " << map.getItemSpawns().size() << std::endl;
     std::cout << "Collider count: " << map.getColliders().size() << std::endl;
 
     // Load a player
-    if (!player.init(renderer, "../assets/player.png", 100.0f, 340.0f)) {
+    float playerStartX = 100.0f;
+    float playerStartY = 100.0f;
+
+    if (map.hasPlayerSpawn()) {
+        SpawnPoint spawn = map.getPlayerSpawn();
+        playerStartX = spawn.x;
+        playerStartY = spawn.y;
+    }
+
+    if (!player.init(renderer, "../assets/player.png", playerStartX, playerStartY)) {
         std::cout << "Failed to initialize player.\n";
-        SDL_DestroyTexture(tilesetTexture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
         return false;
     }
 
@@ -74,11 +80,33 @@ bool Game::init(const char* title, int width, int height) {
     camera.w = static_cast<float>(width);
     camera.h = static_cast<float>(height);
 
-    // Load an enemy
-    // starts at (300,300), patrolls from x = 300 x = 500
-    if (!enemy.init(renderer, "../assets/enemy.png", 300.0f, 300.0f, 300.0f, 500.0f)) {
-        std::cout << "Failed to initialize enemy. \n";
-        return false;
+    // Load enemies
+    const std::vector<SpawnPoint>& enemySpawns = map.getEnemySpawnPoints();
+
+    for (const SpawnPoint& spawn : enemySpawns) {
+        enemies.emplace_back();
+
+        float patrolLeft = spawn.x - 100.0f;
+        float patrolRight = spawn.x + 100.0f;
+
+        if (!enemies.back().init(renderer, "../assets/enemy.png", spawn.x, spawn.y, patrolLeft, patrolRight)) {
+            std::cout << "Failed to initialize one enemy.\n";
+            enemies.pop_back();
+        }
+    }
+
+    // Load items
+    const std::vector<ItemSpawn>& itemSpawns = map.getItemSpawns();
+
+    for (const ItemSpawn& spawn : itemSpawns) {
+        ItemType type = stringToItemType(spawn.type);
+
+        items.emplace_back();
+
+        if (!items.back().init(renderer, itemTexturePath(type), spawn.x, spawn.y, type)) {
+            std::cout << "Failed to initialize one item.\n";
+            items.pop_back();
+        }
     }
 
     // Previous tick
@@ -105,11 +133,11 @@ void Game::handleEvents() {
             isRunning = false;
         }
 
-        if (event.type == SDL_EVENT_KEY_DOWN) {
-            if (event.key.scancode == SDL_SCANCODE_SPACE) {
-                enemy.takeDamage(1);
-            }
-        }
+        // if (event.type == SDL_EVENT_KEY_DOWN) {
+        //     if (event.key.scancode == SDL_SCANCODE_SPACE) {
+        //         enemy.takeDamage(1);
+        //     }
+        // }
     }
 
     const bool* keyStates = SDL_GetKeyboardState(nullptr);
@@ -125,7 +153,7 @@ void Game::update() {
     float mapPixelWidth = static_cast<float>(map.getWidth() * map.getTileWidth());
     float mapPixelHeight = static_cast<float>(map.getHeight() * map.getTileHeight());
 
-    player.update(deltaTime, map);
+    player.update(deltaTime, mapPixelWidth, mapPixelHeight);
 
     camera.x = player.getX() + player.getWidth() / 2.0f - camera.w / 2.0f;
     camera.y = player.getY() + player.getHeight() / 2.0f - camera.h / 2.0f;
@@ -151,24 +179,42 @@ void Game::update() {
     //           << ", " << map.getHeight() * map.getTileHeight() << std::endl;
 
     // Enemy
-    SDL_FRect playerBounds{player.getX(), player.getY(), player.getWidth(), player.getHeight()};
-    SDL_FRect enemyBounds = enemy.getBounds();
-
-    if (SDL_HasRectIntersectionFloat(&playerBounds, &enemyBounds)) {
-        std::cout << "Enemy encountered! \n";
+    for (Enemy& enemy : enemies) {
+        enemy.update(deltaTime, player.getX(), player.getY());
     }
 
-    enemy.update(deltaTime, player.getX(), player.getY());
-    // Enemy debugging
-    // if (enemy.getState() == EnemyState::Idle) {
-    //     std::cout << "Enemy state: Idle\n";
-    // }
-    // else if (enemy.getState() == EnemyState::Patrol) {
-    //     std::cout << "Enemy state: Patrol\n";
-    // }
-    // else if (enemy.getState() == EnemyState::Chase) {
-    //     std::cout << "Enemy state: Chase\n";
-    // }
+    // Items
+    SDL_FRect playerBounds;
+    playerBounds.x = player.getX();
+    playerBounds.y = player.getY();
+    playerBounds.w = player.getWidth();
+    playerBounds.h = player.getHeight();
+
+    for (Item& item : items) {
+        if (!item.isActive()) {
+            continue;
+        }
+
+        SDL_FRect itemBounds = item.getBounds();
+
+        bool overlaps =
+            playerBounds.x < itemBounds.x + itemBounds.w &&
+            playerBounds.x + playerBounds.w > itemBounds.x &&
+            playerBounds.y < itemBounds.y + itemBounds.h &&
+            playerBounds.y + playerBounds.h > itemBounds.y;
+
+        if (overlaps) {
+            if (item.getType() == ItemType::Coin) {
+                coinCount++;
+                std::cout << "Picked up coin!\n";
+            }
+            else if (item.getType() == ItemType::Health) {
+                std::cout << "Picked up health!\n";
+            }
+
+            item.pickUp();
+        }
+    }
 
 }
 
@@ -179,7 +225,12 @@ void Game::render() {
 
     map.render(renderer, tilesetTexture, camRect);
     player.render(renderer, camRect);
-    enemy.render(renderer, camRect);
+    for (Enemy& enemy : enemies) {
+        enemy.render(renderer, camRect);
+    }
+    for (Item& item : items) {
+        item.render(renderer, camRect);
+    }
     // Draw collision rectangles in red
     // SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     // for (const SDL_FRect& rect : map.getColliders()) {
@@ -207,8 +258,18 @@ void Game::clean() {
     }
 
     player.clean();
-    enemy.clean();
 
+    for (Enemy& enemy : enemies) {
+        enemy.clean();
+    }
+    enemies.clear();
+
+    for (Item& item : items) {
+        item.clean();
+    }
+    items.clear();
+
+    // Clear all drawings before renderer clearing
     if (renderer) {
         SDL_DestroyRenderer(renderer);
         renderer = nullptr;

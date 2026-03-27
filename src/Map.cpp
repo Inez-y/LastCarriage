@@ -7,7 +7,9 @@
 #include <vector>
 
 Map::Map()
-    : width(0),
+    : playerSpawn{0.0f, 0.0f},
+      playerSpawnSet(false),
+      width(0),
       height(0),
       tileWidth(0),
       tileHeight(0),
@@ -16,6 +18,8 @@ Map::Map()
 
 bool Map::load(const char* path) {
     using namespace tinyxml2;
+    playerSpawnSet = false;
+    playerSpawn = {0.0f, 0.0f};
 
     XMLDocument doc;
     if (doc.LoadFile(path) != XML_SUCCESS) {
@@ -35,8 +39,12 @@ bool Map::load(const char* path) {
     mapNode->QueryIntAttribute("tileheight", &tileHeight);
 
     tiles.clear();
-    itemSpawnPoints.clear();
+    itemSpawns.clear();
+    enemySpawnPoints.clear();
     colliders.clear();
+
+    playerSpawnSet = false;
+    playerSpawn = {0.0f, 0.0f};
 
     XMLElement* tilesetNode = mapNode->FirstChildElement("tileset");
     if (tilesetNode) {
@@ -115,14 +123,46 @@ bool Map::load(const char* path) {
         if (groupName) {
             std::string name = groupName;
 
-            if (name == "Item Layer") {
+            if (name == "Spawn Layer") {
+                tinyxml2::XMLElement* objectNode = objectGroupNode->FirstChildElement("object");
+                while (objectNode) {
+                    const char* objectName = objectNode->Attribute("name");
+
+                    if (objectName && std::string(objectName) == "PlayerSpawn") {
+                        playerSpawn.x = objectNode->FloatAttribute("x");
+                        playerSpawn.y = objectNode->FloatAttribute("y");
+                        playerSpawnSet = true;
+                        break;
+                    }
+
+                    objectNode = objectNode->NextSiblingElement("object");
+                }
+            }
+            else if (name == "Enemy Spawn Layer") {
+                tinyxml2::XMLElement* objectNode = objectGroupNode->FirstChildElement("object");
+                while (objectNode) {
+                    float x = objectNode->FloatAttribute("x");
+                    float y = objectNode->FloatAttribute("y");
+
+                    enemySpawnPoints.push_back({x, y});
+
+                    objectNode = objectNode->NextSiblingElement("object");
+                }
+            }
+            else if (name == "Item Layer") {
                 XMLElement* objectNode = objectGroupNode->FirstChildElement("object");
                 while (objectNode) {
                     float x = objectNode->FloatAttribute("x");
                     float y = objectNode->FloatAttribute("y");
 
-                    itemSpawnPoints.push_back({x, y});
+                    const char* objectName = objectNode->Attribute("name");
+                    std::string itemType = "Coin";
 
+                    if (objectName) {
+                        itemType = objectName;
+                    }
+
+                    itemSpawns.push_back({x, y, itemType});
                     objectNode = objectNode->NextSiblingElement("object");
                 }
             }
@@ -192,8 +232,8 @@ void Map::render(SDL_Renderer* renderer, SDL_Texture* tilesetTexture, const SDL_
     }
 }
 
-const std::vector<SpawnPoint>& Map::getItemSpawnPoints() const {
-    return itemSpawnPoints;
+const std::vector<ItemSpawn>& Map::getItemSpawns() const {
+    return itemSpawns;
 }
 
 const std::vector<SDL_FRect>& Map::getColliders() const {
@@ -216,24 +256,14 @@ int Map::getTileHeight() const {
     return tileHeight;
 }
 
-// For collision
-int Map::getTileAt(int row, int col) const {
-    if (row < 0 || row >= height || col < 0 || col >= width) {
-        return -1;
-    }
-
-    return tiles[row][col];
+SpawnPoint Map::getPlayerSpawn() const {
+    return playerSpawn;
 }
 
-int Map::isWalkableTile(int row, int col) const {
-    int gid = getTileAt(row, col);
-    return gid == 1;
+bool Map::hasPlayerSpawn() const {
+    return playerSpawnSet;
 }
 
-// World-position collision
-bool Map::isWalkableAtWorld(float worldX, float worldY) const {
-    int col = static_cast<int>(worldX) / tileWidth;
-    int row = static_cast<int>(worldY) / tileHeight;
-
-    return isWalkableTile(row, col);
+const std::vector<SpawnPoint>& Map::getEnemySpawnPoints() const {
+    return enemySpawnPoints;
 }

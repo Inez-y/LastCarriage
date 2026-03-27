@@ -2,10 +2,12 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
+#include <vector>
 #include "Map.h"
 #include "Player.h"
 #include "Camera.h"
 #include "Enemy.h"
+#include "Item.h"
 
 class Game {
 public:
@@ -29,7 +31,9 @@ private:
     Map map;
     Player player;
     Camera camera;
-    Enemy enemy;
+    std::vector<Enemy> enemies; // multiple enemies
+    std::vector<Item> items;
+    int coinCount;
 
     // Previous tick
     Uint64 lastCounter;
