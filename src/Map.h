@@ -36,12 +36,6 @@ public:
     int getTileWidth() const;
     int getTileHeight() const;
 
-    // For collision
-    int getTileAt(int row, int col) const;
-    int isWalkableTile(int row, int col) const;
-
-    // World-position collision
-    bool isWalkableAtWorld(float worldX, float worldY) const;
 
 private:
     std::vector<std::vector<int>> tiles;

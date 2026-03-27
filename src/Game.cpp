@@ -153,7 +153,7 @@ void Game::update() {
     float mapPixelWidth = static_cast<float>(map.getWidth() * map.getTileWidth());
     float mapPixelHeight = static_cast<float>(map.getHeight() * map.getTileHeight());
 
-    player.update(deltaTime, mapPixelWidth, mapPixelHeight);
+    player.update(deltaTime, map);
 
     camera.x = player.getX() + player.getWidth() / 2.0f - camera.w / 2.0f;
     camera.y = player.getY() + player.getHeight() / 2.0f - camera.h / 2.0f;

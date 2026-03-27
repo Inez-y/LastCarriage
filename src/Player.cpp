@@ -62,37 +62,7 @@ void Player::handleInput(const bool* keyStates) {
 }
 
 void Player::update(float deltaTime, const Map& map) {
-    // Make player feet stay in terrain layer, especially in 1
-    float nextX = x + moveX * speed * deltaTime;
-    float nextY = y + moveY * speed * deltaTime;
 
-    const float footInsetX = 6.0f;
-    const float footOffsetY = dstRect.h - 2.0f;
-
-    float leftFootX = nextX + footInsetX;
-    float rightFootX = nextX + dstRect.w - footInsetX;
-    float footY = nextY + footOffsetY;
-
-    bool leftFootOK = map.isWalkableAtWorld(leftFootX, footY);
-    bool rightFootOK = map.isWalkableAtWorld(rightFootX, footY);
-
-    int leftCol = static_cast<int>(leftFootX) / map.getTileWidth();
-    int rightCol = static_cast<int>(rightFootX) / map.getTileWidth();
-    int footRow = static_cast<int>(footY) / map.getTileHeight();
-
-    std::cout << "Feet tiles: "
-              << map.getTileAt(footRow, leftCol) << ", "
-              << map.getTileAt(footRow, rightCol) << std::endl;
-
-    if (leftFootOK && rightFootOK) {
-        x = nextX;
-        y = nextY;
-    }
-
-    dstRect.x = x;
-    dstRect.y = y;
-
-    // Debugging
 
 }
 
