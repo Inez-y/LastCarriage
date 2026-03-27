@@ -6,6 +6,8 @@ Game::Game()
       renderer(nullptr),
       tilesetTexture(nullptr),
       coinCount(0),
+shootCooldown(0.2f),
+shootTimer(0.0f),
       isRunning(false) {
 }
 
@@ -133,11 +135,20 @@ void Game::handleEvents() {
             isRunning = false;
         }
 
-        // if (event.type == SDL_EVENT_KEY_DOWN) {
-        //     if (event.key.scancode == SDL_SCANCODE_SPACE) {
-        //         enemy.takeDamage(1);
-        //     }
-        // }
+        // Bullet
+        if (event.type == SDL_EVENT_KEY_DOWN) {
+            if (event.key.scancode == SDL_SCANCODE_SPACE) {
+                Bullet bullet;
+
+                float bulletX = player.getX() + player.getWidth() / 2.0f;
+                float bulletY = player.getY() + player.getHeight() / 2.0f;
+
+                bullet.init(bulletX, bulletY, player.getFacingDirection());
+                bullets.push_back(bullet);
+
+                shootTimer = shootCooldown;
+            }
+        }
     }
 
     const bool* keyStates = SDL_GetKeyboardState(nullptr);
@@ -183,6 +194,49 @@ void Game::update() {
         enemy.update(deltaTime, player.getX(), player.getY());
     }
 
+    // Bullets
+    for (Bullet& bullet : bullets) {
+        bullet.update(deltaTime);
+
+        SDL_FRect bulletBounds = bullet.getBounds();
+
+        if (shootTimer > 0.0f) {
+            shootTimer -= deltaTime;
+        }
+
+        if (bulletBounds.x < 0.0f || bulletBounds.x > mapPixelWidth) {
+            bullet.deactivate();
+        }
+    }
+
+    for (Bullet& bullet : bullets) {
+        if (!bullet.isActive()) {
+            continue;
+        }
+
+        SDL_FRect bulletBounds = bullet.getBounds();
+
+        for (Enemy& enemy : enemies) {
+            if (enemy.isDead()) {
+                continue;
+            }
+
+            SDL_FRect enemyBounds = enemy.getBounds();
+
+            bool overlaps =
+                bulletBounds.x < enemyBounds.x + enemyBounds.w &&
+                bulletBounds.x + bulletBounds.w > enemyBounds.x &&
+                bulletBounds.y < enemyBounds.y + enemyBounds.h &&
+                bulletBounds.y + bulletBounds.h > enemyBounds.y;
+
+            if (overlaps) {
+                enemy.takeDamage(1);
+                bullet.deactivate();
+                break;
+            }
+        }
+    }
+
     // Items
     SDL_FRect playerBounds;
     playerBounds.x = player.getX();
@@ -225,9 +279,18 @@ void Game::render() {
 
     map.render(renderer, tilesetTexture, camRect);
     player.render(renderer, camRect);
+
+    // Enemies
     for (Enemy& enemy : enemies) {
         enemy.render(renderer, camRect);
     }
+
+    // Bullets
+    for (Bullet& bullet : bullets) {
+        bullet.render(renderer, camRect);
+    }
+
+    // Items
     for (Item& item : items) {
         item.render(renderer, camRect);
     }
@@ -263,6 +326,10 @@ void Game::clean() {
         enemy.clean();
     }
     enemies.clear();
+
+    for (Bullet& bullet : bullets) {
+        bullet.deactivate();
+    }
 
     for (Item& item : items) {
         item.clean();

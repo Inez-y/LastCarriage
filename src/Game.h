@@ -7,6 +7,7 @@
 #include "Player.h"
 #include "Camera.h"
 #include "Enemy.h"
+#include "Bullet.h"
 #include "Item.h"
 
 class Game {
@@ -32,6 +33,9 @@ private:
     Player player;
     Camera camera;
     std::vector<Enemy> enemies; // multiple enemies
+    std::vector<Bullet> bullets;
+    float shootCooldown;
+    float shootTimer;
     std::vector<Item> items;
     int coinCount;
 

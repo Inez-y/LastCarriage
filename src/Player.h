@@ -22,6 +22,8 @@ public:
     float getWidth() const;
     float getHeight() const;
 
+    // For attack
+    int getFacingDirection() const;
 private:
     SDL_Texture* texture;
     SDL_FRect dstRect;
@@ -33,6 +35,9 @@ private:
     // For staying inside a map
     float moveX;
     float moveY;
+
+    // For attack
+    int facingDirection; // 1 (right) -1 (left)
 };
 
 #endif //LASTCARRIAGE_PLAYER_H

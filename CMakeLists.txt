@@ -35,6 +35,8 @@ add_executable(LastCarriage src
         src/Enemy.h
         src/Item.cpp
         src/Item.h
+        src/Bullet.cpp
+        src/Bullet.h
 )
 
 target_link_libraries(LastCarriage

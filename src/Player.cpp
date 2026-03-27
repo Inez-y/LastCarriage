@@ -8,7 +8,8 @@ Player::Player()
       y(100.0f),
       speed(200.0f),
       moveX(0.0f),
-      moveY(0.0f) {
+      moveY(0.0f),
+      facingDirection(1){
     dstRect = {x, y, 32.0f, 32.0f};
 }
 
@@ -47,9 +48,11 @@ void Player::handleInput(const bool* keyStates) {
     }
     if (keyStates[SDL_SCANCODE_A] || keyStates[SDL_SCANCODE_LEFT]) {
         dx -= 1.0f;
+        facingDirection = -1; // left
     }
     if (keyStates[SDL_SCANCODE_D] || keyStates[SDL_SCANCODE_RIGHT]) {
         dx += 1.0f;
+        facingDirection = 1; // right
     }
 
     // Attack spacebar
@@ -101,4 +104,8 @@ float Player::getWidth() const {
 
 float Player::getHeight() const {
     return dstRect.h;
+}
+
+int Player::getFacingDirection() const {
+    return facingDirection;
 }
