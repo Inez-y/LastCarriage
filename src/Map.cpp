@@ -215,3 +215,25 @@ int Map::getTileWidth() const {
 int Map::getTileHeight() const {
     return tileHeight;
 }
+
+// For collision
+int Map::getTileAt(int row, int col) const {
+    if (row < 0 || row >= height || col < 0 || col >= width) {
+        return -1;
+    }
+
+    return tiles[row][col];
+}
+
+int Map::isWalkableTile(int row, int col) const {
+    int gid = getTileAt(row, col);
+    return gid == 1;
+}
+
+// World-position collision
+bool Map::isWalkableAtWorld(float worldX, float worldY) const {
+    int col = static_cast<int>(worldX) / tileWidth;
+    int row = static_cast<int>(worldY) / tileHeight;
+
+    return isWalkableTile(row, col);
+}

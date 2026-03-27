@@ -4,6 +4,7 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include "Map.h"
 
 class Player {
 public:
@@ -11,7 +12,7 @@ public:
 
     bool init(SDL_Renderer* renderer, const char* texturePath, float x, float y);
     void handleInput(const bool* keyStates);
-    void update(float deltaTime, float mapPixelWidth, float mapPixelHeight);
+    void update(float deltaTime, const Map& map);
     void render(SDL_Renderer* renderer, const SDL_FRect& camera);
     void clean();
 

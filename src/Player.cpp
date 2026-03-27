@@ -61,33 +61,39 @@ void Player::handleInput(const bool* keyStates) {
     dstRect.y = y;
 }
 
-void Player::update(float deltaTime, float mapPixelWidth, float mapPixelHeight) {
-    x += moveX * speed * deltaTime;
-    y += moveY * speed * deltaTime;
+void Player::update(float deltaTime, const Map& map) {
+    // Make player feet stay in terrain layer, especially in 1
+    float nextX = x + moveX * speed * deltaTime;
+    float nextY = y + moveY * speed * deltaTime;
 
-    if (x < 0.0f) {
-        x = 0.0f;
-    }
-    if (y < 0.0f) {
-        y = 0.0f;
-    }
+    const float footInsetX = 6.0f;
+    const float footOffsetY = dstRect.h - 2.0f;
 
-    if (x > mapPixelWidth - dstRect.w) {
-        x = mapPixelWidth - dstRect.w;
-    }
-    if (y > mapPixelHeight - dstRect.h) {
-        y = mapPixelHeight - dstRect.h;
-    }
+    float leftFootX = nextX + footInsetX;
+    float rightFootX = nextX + dstRect.w - footInsetX;
+    float footY = nextY + footOffsetY;
 
-    if (x < 0.0f) {
-        x = 0.0f;
-    }
-    if (y < 0.0f) {
-        y = 0.0f;
+    bool leftFootOK = map.isWalkableAtWorld(leftFootX, footY);
+    bool rightFootOK = map.isWalkableAtWorld(rightFootX, footY);
+
+    int leftCol = static_cast<int>(leftFootX) / map.getTileWidth();
+    int rightCol = static_cast<int>(rightFootX) / map.getTileWidth();
+    int footRow = static_cast<int>(footY) / map.getTileHeight();
+
+    std::cout << "Feet tiles: "
+              << map.getTileAt(footRow, leftCol) << ", "
+              << map.getTileAt(footRow, rightCol) << std::endl;
+
+    if (leftFootOK && rightFootOK) {
+        x = nextX;
+        y = nextY;
     }
 
     dstRect.x = x;
     dstRect.y = y;
+
+    // Debugging
+
 }
 
 void Player::render(SDL_Renderer* renderer, const SDL_FRect& camera) {

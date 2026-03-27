@@ -43,7 +43,7 @@ bool Game::init(const char* title, int width, int height) {
     }
 
     // Load TMX map
-    if (!map.load("../assets/map.tmx")) {
+    if (!map.load("../assets/map1.tmx")) {
         std::cout << "Failed to load TMX map.\n";
         SDL_DestroyTexture(tilesetTexture);
         SDL_DestroyRenderer(renderer);
@@ -59,7 +59,7 @@ bool Game::init(const char* title, int width, int height) {
     std::cout << "Collider count: " << map.getColliders().size() << std::endl;
 
     // Load a player
-    if (!player.init(renderer, "../assets/player.png", 100.0f, 100.0f)) {
+    if (!player.init(renderer, "../assets/player.png", 100.0f, 340.0f)) {
         std::cout << "Failed to initialize player.\n";
         SDL_DestroyTexture(tilesetTexture);
         SDL_DestroyRenderer(renderer);
@@ -125,7 +125,7 @@ void Game::update() {
     float mapPixelWidth = static_cast<float>(map.getWidth() * map.getTileWidth());
     float mapPixelHeight = static_cast<float>(map.getHeight() * map.getTileHeight());
 
-    player.update(deltaTime, mapPixelWidth, mapPixelHeight);
+    player.update(deltaTime, map);
 
     camera.x = player.getX() + player.getWidth() / 2.0f - camera.w / 2.0f;
     camera.y = player.getY() + player.getHeight() / 2.0f - camera.h / 2.0f;
@@ -160,15 +160,15 @@ void Game::update() {
 
     enemy.update(deltaTime, player.getX(), player.getY());
     // Enemy debugging
-    if (enemy.getState() == EnemyState::Idle) {
-        std::cout << "Enemy state: Idle\n";
-    }
-    else if (enemy.getState() == EnemyState::Patrol) {
-        std::cout << "Enemy state: Patrol\n";
-    }
-    else if (enemy.getState() == EnemyState::Chase) {
-        std::cout << "Enemy state: Chase\n";
-    }
+    // if (enemy.getState() == EnemyState::Idle) {
+    //     std::cout << "Enemy state: Idle\n";
+    // }
+    // else if (enemy.getState() == EnemyState::Patrol) {
+    //     std::cout << "Enemy state: Patrol\n";
+    // }
+    // else if (enemy.getState() == EnemyState::Chase) {
+    //     std::cout << "Enemy state: Chase\n";
+    // }
 
 }
 
